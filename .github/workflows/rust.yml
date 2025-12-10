@@ -16,7 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        uses: dtolnay/rust-toolchain-action@stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
       - name: Cache cargo target
         uses: actions/cache@v4
         with:
@@ -48,7 +50,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        uses: dtolnay/rust-toolchain-action@stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
       - name: Install mpv (required for integration tests)
         run: |
           sudo apt-get update
@@ -64,7 +68,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        uses: dtolnay/rust-toolchain-action@stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
