@@ -9,6 +9,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   lint-and-test:
     name: Lint & Unit tests
@@ -16,9 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo target
         uses: actions/cache@v4
         with:
@@ -33,8 +34,8 @@ jobs:
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
       - name: Install rustfmt & clippy
         run: |
-          rustup component add rustfmt || true
-          rustup component add clippy || true
+          rustup component add rustfmt
+          rustup component add clippy
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Run clippy
@@ -50,9 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
       - name: Install mpv (required for integration tests)
         run: |
           sudo apt-get update
@@ -68,9 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
@@ -85,11 +82,14 @@ jobs:
         run: cargo audit || true
       - name: Build release
         run: cargo build --release
-      - name: Upload release artifact
+      - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: apple-release
-          path: target/release/apple
+          path: |
+            target/release/apple
+            target/release/applectl
+            target/release/tui
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         env:

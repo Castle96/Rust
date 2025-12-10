@@ -3,6 +3,18 @@ name = "apple"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "apple"
+path = "src/main.rs"
+
+[[bin]]
+name = "applectl"
+path = "src/bin/applectl.rs"
+
+[[bin]]
+name = "tui"
+path = "src/bin/tui.rs"
+
 [dependencies]
 clap = { version = "4.3", features = ["derive"] }
 tokio = { version = "1.33", features = ["full"] }
@@ -21,7 +33,7 @@ crossterm = "0.26"
 reqwest = { version = "0.12.25", features = ["rustls-tls", "json"] }
 
 # JWT helper
-jsonwebtoken = { version = "10.2.0", features = ["pem"] }
+jsonwebtoken = { version = "10.2.0", features = ["pem", "rust_crypto"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
