@@ -170,7 +170,7 @@ fn write_silence_wav(path: &PathBuf) -> std::io::Result<()> {
     let num_samples = sample_rate * duration_secs;
 
     let byte_rate = sample_rate * (bits_per_sample as u32) / 8 * num_channels as u32;
-    let block_align = num_channels * (bits_per_sample / 8) as u16;
+    let block_align = num_channels * (bits_per_sample / 8);
     let subchunk2_size = num_samples * (bits_per_sample as u32 / 8) * num_channels as u32;
     let chunk_size = 36 + subchunk2_size;
 

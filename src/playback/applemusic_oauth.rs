@@ -19,9 +19,15 @@ struct Claims<'a> {
 /// - `key_id`: The Music Key ID (Key identifier shown in App Store Connect)
 /// - `private_key_pem_path`: path to the downloaded .p8 file
 /// - `ttl_seconds`: desired token lifetime in seconds (<= 6 months recommended)
-pub fn generate_developer_token(team_id: &str, key_id: &str, private_key_pem_path: &str, ttl_seconds: i64) -> Result<String> {
+pub fn generate_developer_token(
+    team_id: &str,
+    key_id: &str,
+    private_key_pem_path: &str,
+    ttl_seconds: i64,
+) -> Result<String> {
     // read private key
-    let pem = fs::read_to_string(private_key_pem_path).context("failed to read private key file")?;
+    let pem =
+        fs::read_to_string(private_key_pem_path).context("failed to read private key file")?;
 
     // jsonwebtoken's EncodingKey::from_ec_pem expects the PKCS8 PEM for EC keys
     let encoding_key = EncodingKey::from_ec_pem(pem.as_bytes()).context("invalid EC PEM")?;
@@ -30,12 +36,17 @@ pub fn generate_developer_token(team_id: &str, key_id: &str, private_key_pem_pat
     let iat = now.timestamp();
     let exp = (now + Duration::seconds(ttl_seconds)).timestamp();
 
-    let claims = Claims { iss: team_id, iat, exp };
+    let claims = Claims {
+        iss: team_id,
+        iat,
+        exp,
+    };
 
     let mut header = Header::new(Algorithm::ES256);
     header.kid = Some(key_id.to_owned());
 
-    let token = jsonwebtoken::encode(&header, &claims, &encoding_key).context("failed to encode JWT")?;
+    let token =
+        jsonwebtoken::encode(&header, &claims, &encoding_key).context("failed to encode JWT")?;
     Ok(token)
 }
 
@@ -50,4 +61,3 @@ mod tests {
         assert!(res.is_err());
     }
 }
-

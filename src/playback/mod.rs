@@ -11,12 +11,12 @@ pub trait PlaybackAdapter {
     async fn status(&mut self) -> Result<String>;
 
     // Optional: fetch artist general info (name, genre, url, etc.). Default: not supported.
-    async fn artist_info(&mut self, artist_id: &str) -> Result<String> {
+    async fn artist_info(&mut self, _artist_id: &str) -> Result<String> {
         Ok("artist info not supported by this adapter".into())
     }
 
     // Optional: fetch artist discography (albums). Default: not supported.
-    async fn artist_discography(&mut self, artist_id: &str) -> Result<String> {
+    async fn artist_discography(&mut self, _artist_id: &str) -> Result<String> {
         Ok("artist discography not supported by this adapter".into())
     }
 }
@@ -25,11 +25,11 @@ pub trait PlaybackAdapter {
 mod macos;
 
 mod applemusic;
+mod applemusic_oauth;
 #[cfg(unix)]
 mod mpv;
 mod noop;
 mod system;
-mod applemusic_oauth;
 
 #[cfg(target_os = "macos")]
 pub use macos::MacOsAdapter;

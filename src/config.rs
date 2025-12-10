@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::env;
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Config {
@@ -45,4 +45,3 @@ pub fn save_config(cfg: &Config) -> Result<()> {
     fs::write(&path, s).context("write config")?;
     Ok(())
 }
-

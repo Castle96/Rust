@@ -2,9 +2,9 @@ use crate::player::Player;
 use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 // A tiny JSON command protocol for local control. This is D1: a small daemon mode.
 // Commands are sent as a single-line JSON object. Example:
@@ -67,9 +67,9 @@ pub async fn run_daemon(player: Player) -> Result<()> {
     #[cfg(unix)]
     {
         use tokio::net::UnixListener;
-        let sock = socket_env
-            .map(std::path::PathBuf::from)
-            .unwrap_or_else(|| std::env::temp_dir().join(format!("apple-daemon-{}.sock", std::process::id())));
+        let sock = socket_env.map(std::path::PathBuf::from).unwrap_or_else(|| {
+            std::env::temp_dir().join(format!("apple-daemon-{}.sock", std::process::id()))
+        });
         // remove if exists
         let _ = std::fs::remove_file(&sock);
         let listener = UnixListener::bind(&sock)?;
@@ -148,7 +148,7 @@ async fn handle_unix_connection(
     shutdown_flag: Arc<AtomicBool>,
     token_env: Option<String>,
 ) -> Result<()> {
-    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, split};
+    use tokio::io::{split, AsyncBufReadExt, AsyncWriteExt, BufReader};
     let (r, mut w) = split(stream);
     let mut reader = BufReader::new(r);
     loop {
@@ -189,21 +189,47 @@ async fn handle_unix_connection(
                     "play" => {
                         if let Some(u) = c.arg.as_deref() {
                             // block insecure http unless explicitly allowed via env
-                            if u.starts_with("http://") && !std::env::var("APPLE_ALLOW_INSECURE").map(|v| v == "1" || v.eq_ignore_ascii_case("true")).unwrap_or(false) {
-                                Resp { ok: false, msg: "Refusing insecure http URL; set APPLE_ALLOW_INSECURE=1 to allow".into(), items: None }
+                            if u.starts_with("http://")
+                                && !std::env::var("APPLE_ALLOW_INSECURE")
+                                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                                    .unwrap_or(false)
+                            {
+                                Resp {
+                            ok: false,
+                            msg: "Refusing insecure http URL; set APPLE_ALLOW_INSECURE=1 to allow".into(),
+                            items: None,
+                        }
                             } else if u.starts_with("https://") {
                                 if let Err(e) = validate_https_url(u).await {
-                                    Resp { ok: false, msg: format!("url validation failed: {}", e), items: None }
+                                    Resp {
+                                        ok: false,
+                                        msg: format!("url validation failed: {}", e),
+                                        items: None,
+                                    }
                                 } else {
                                     let _ = pl.play_item(u).await;
-                                    Resp { ok: true, msg: "playing".into(), items: None }
+                                    Resp {
+                                        ok: true,
+                                        msg: "playing".into(),
+                                        items: None,
+                                    }
                                 }
                             } else {
                                 // allow other schemes (file://, etc.) without validation
                                 let _ = pl.play_item(u).await;
-                                Resp { ok: true, msg: "playing".into(), items: None }
+                                Resp {
+                                    ok: true,
+                                    msg: "playing".into(),
+                                    items: None,
+                                }
                             }
-                        } else { Resp { ok: false, msg: "missing arg".into(), items: None } }
+                        } else {
+                            Resp {
+                                ok: false,
+                                msg: "missing arg".into(),
+                                items: None,
+                            }
+                        }
                     }
                     "pause" => {
                         let _ = pl.adapter_mut().pause().await;
@@ -215,29 +241,61 @@ async fn handle_unix_connection(
                     }
                     "enqueue" => {
                         if let Some(item) = c.arg.as_deref() {
-                            if item.starts_with("http://") && !std::env::var("APPLE_ALLOW_INSECURE").map(|v| v == "1" || v.eq_ignore_ascii_case("true")).unwrap_or(false) {
-                                Resp { ok: false, msg: "Refusing insecure http URL; set APPLE_ALLOW_INSECURE=1 to allow".into(), items: None }
+                            if item.starts_with("http://")
+                                && !std::env::var("APPLE_ALLOW_INSECURE")
+                                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                                    .unwrap_or(false)
+                            {
+                                Resp {
+                            ok: false,
+                            msg: "Refusing insecure http URL; set APPLE_ALLOW_INSECURE=1 to allow".into(),
+                            items: None,
+                        }
                             } else if item.starts_with("https://") {
                                 if let Err(e) = validate_https_url(item).await {
-                                    Resp { ok: false, msg: format!("url validation failed: {}", e), items: None }
+                                    Resp {
+                                        ok: false,
+                                        msg: format!("url validation failed: {}", e),
+                                        items: None,
+                                    }
                                 } else {
                                     pl.enqueue(item.to_string());
-                                    Resp { ok: true, msg: "enqueued".into(), items: None }
+                                    Resp {
+                                        ok: true,
+                                        msg: "enqueued".into(),
+                                        items: None,
+                                    }
                                 }
                             } else {
                                 pl.enqueue(item.to_string());
-                                Resp { ok: true, msg: "enqueued".into(), items: None }
+                                Resp {
+                                    ok: true,
+                                    msg: "enqueued".into(),
+                                    items: None,
+                                }
                             }
                         } else {
-                            Resp { ok: false, msg: "missing arg".into(), items: None }
+                            Resp {
+                                ok: false,
+                                msg: "missing arg".into(),
+                                items: None,
+                            }
                         }
                     }
                     "next" => {
                         if let Some(it) = pl.next_item() {
                             let _ = pl.play_item(&it).await;
-                            Resp { ok: true, msg: format!("playing {}", it), items: None }
+                            Resp {
+                                ok: true,
+                                msg: format!("playing {}", it),
+                                items: None,
+                            }
                         } else {
-                            Resp { ok: false, msg: "queue empty".into(), items: None }
+                            Resp {
+                                ok: false,
+                                msg: "queue empty".into(),
+                                items: None,
+                            }
                         }
                     }
                     "status" => {
@@ -246,26 +304,62 @@ async fn handle_unix_connection(
                             .status()
                             .await
                             .unwrap_or_else(|e| format!("err: {}", e));
-                        Resp { ok: true, msg: s, items: None }
+                        Resp {
+                            ok: true,
+                            msg: s,
+                            items: None,
+                        }
                     }
-                    "list" => Resp { ok: true, msg: "ok".into(), items: Some(pl.list()) },
+                    "list" => Resp {
+                        ok: true,
+                        msg: "ok".into(),
+                        items: Some(pl.list()),
+                    },
                     "artist_info" => {
                         if let Some(artist_id) = c.arg.as_deref() {
-                            let info = pl.adapter_mut().artist_info(artist_id).await.unwrap_or_else(|e| format!("err: {}", e));
+                            let info = pl
+                                .adapter_mut()
+                                .artist_info(artist_id)
+                                .await
+                                .unwrap_or_else(|e| format!("err: {}", e));
                             // split lines into items for structured response
                             let items = info.lines().map(|s| s.to_string()).collect();
-                            Resp { ok: true, msg: "artist info".into(), items: Some(items) }
+                            Resp {
+                                ok: true,
+                                msg: "artist info".into(),
+                                items: Some(items),
+                            }
                         } else {
-                            Resp { ok: false, msg: "missing arg".into(), items: None }
+                            Resp {
+                                ok: false,
+                                msg: "missing arg".into(),
+                                items: None,
+                            }
                         }
                     }
                     "artist_discography" => {
                         if let Some(artist_id) = c.arg.as_deref() {
-                            let disc = pl.adapter_mut().artist_discography(artist_id).await.unwrap_or_else(|e| format!("err: {}", e));
-                            let items = if disc.is_empty() { vec![] } else { disc.lines().map(|s| s.to_string()).collect() };
-                            Resp { ok: true, msg: "discography".into(), items: Some(items) }
+                            let disc = pl
+                                .adapter_mut()
+                                .artist_discography(artist_id)
+                                .await
+                                .unwrap_or_else(|e| format!("err: {}", e));
+                            let items = if disc.is_empty() {
+                                vec![]
+                            } else {
+                                disc.lines().map(|s| s.to_string()).collect()
+                            };
+                            Resp {
+                                ok: true,
+                                msg: "discography".into(),
+                                items: Some(items),
+                            }
                         } else {
-                            Resp { ok: false, msg: "missing arg".into(), items: None }
+                            Resp {
+                                ok: false,
+                                msg: "missing arg".into(),
+                                items: None,
+                            }
                         }
                     }
                     _ => Resp {
@@ -295,7 +389,7 @@ async fn handle_tcp_connection(
     shutdown_flag: Arc<AtomicBool>,
     token_env: Option<String>,
 ) -> Result<()> {
-    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, split};
+    use tokio::io::{split, AsyncBufReadExt, AsyncWriteExt, BufReader};
     let (r, mut w) = split(stream);
     let mut reader = BufReader::new(r);
     loop {
@@ -309,7 +403,9 @@ async fn handle_tcp_connection(
             Ok(Ok(_)) => {}
         }
 
-        if shutdown_flag.load(Ordering::SeqCst) { break; }
+        if shutdown_flag.load(Ordering::SeqCst) {
+            break;
+        }
 
         match serde_json::from_str::<Cmd>(&line) {
             Ok(c) => {
@@ -331,21 +427,47 @@ async fn handle_tcp_connection(
                     "play" => {
                         if let Some(u) = c.arg.as_deref() {
                             // block insecure http unless explicitly allowed via env
-                            if u.starts_with("http://") && !std::env::var("APPLE_ALLOW_INSECURE").map(|v| v == "1" || v.eq_ignore_ascii_case("true")).unwrap_or(false) {
-                                Resp { ok: false, msg: "Refusing insecure http URL; set APPLE_ALLOW_INSECURE=1 to allow".into(), items: None }
+                            if u.starts_with("http://")
+                                && !std::env::var("APPLE_ALLOW_INSECURE")
+                                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                                    .unwrap_or(false)
+                            {
+                                Resp {
+                            ok: false,
+                            msg: "Refusing insecure http URL; set APPLE_ALLOW_INSECURE=1 to allow".into(),
+                            items: None,
+                        }
                             } else if u.starts_with("https://") {
                                 if let Err(e) = validate_https_url(u).await {
-                                    Resp { ok: false, msg: format!("url validation failed: {}", e), items: None }
+                                    Resp {
+                                        ok: false,
+                                        msg: format!("url validation failed: {}", e),
+                                        items: None,
+                                    }
                                 } else {
                                     let _ = pl.play_item(u).await;
-                                    Resp { ok: true, msg: "playing".into(), items: None }
+                                    Resp {
+                                        ok: true,
+                                        msg: "playing".into(),
+                                        items: None,
+                                    }
                                 }
                             } else {
                                 // allow other schemes (file://, etc.) without validation
                                 let _ = pl.play_item(u).await;
-                                Resp { ok: true, msg: "playing".into(), items: None }
+                                Resp {
+                                    ok: true,
+                                    msg: "playing".into(),
+                                    items: None,
+                                }
                             }
-                        } else { Resp { ok: false, msg: "missing arg".into(), items: None } }
+                        } else {
+                            Resp {
+                                ok: false,
+                                msg: "missing arg".into(),
+                                items: None,
+                            }
+                        }
                     }
                     "pause" => {
                         let _ = pl.adapter_mut().pause().await;
@@ -357,29 +479,61 @@ async fn handle_tcp_connection(
                     }
                     "enqueue" => {
                         if let Some(item) = c.arg.as_deref() {
-                            if item.starts_with("http://") && !std::env::var("APPLE_ALLOW_INSECURE").map(|v| v == "1" || v.eq_ignore_ascii_case("true")).unwrap_or(false) {
-                                Resp { ok: false, msg: "Refusing insecure http URL; set APPLE_ALLOW_INSECURE=1 to allow".into(), items: None }
+                            if item.starts_with("http://")
+                                && !std::env::var("APPLE_ALLOW_INSECURE")
+                                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                                    .unwrap_or(false)
+                            {
+                                Resp {
+                            ok: false,
+                            msg: "Refusing insecure http URL; set APPLE_ALLOW_INSECURE=1 to allow".into(),
+                            items: None,
+                        }
                             } else if item.starts_with("https://") {
                                 if let Err(e) = validate_https_url(item).await {
-                                    Resp { ok: false, msg: format!("url validation failed: {}", e), items: None }
+                                    Resp {
+                                        ok: false,
+                                        msg: format!("url validation failed: {}", e),
+                                        items: None,
+                                    }
                                 } else {
                                     pl.enqueue(item.to_string());
-                                    Resp { ok: true, msg: "enqueued".into(), items: None }
+                                    Resp {
+                                        ok: true,
+                                        msg: "enqueued".into(),
+                                        items: None,
+                                    }
                                 }
                             } else {
                                 pl.enqueue(item.to_string());
-                                Resp { ok: true, msg: "enqueued".into(), items: None }
+                                Resp {
+                                    ok: true,
+                                    msg: "enqueued".into(),
+                                    items: None,
+                                }
                             }
                         } else {
-                            Resp { ok: false, msg: "missing arg".into(), items: None }
+                            Resp {
+                                ok: false,
+                                msg: "missing arg".into(),
+                                items: None,
+                            }
                         }
                     }
                     "next" => {
                         if let Some(it) = pl.next_item() {
                             let _ = pl.play_item(&it).await;
-                            Resp { ok: true, msg: format!("playing {}", it), items: None }
+                            Resp {
+                                ok: true,
+                                msg: format!("playing {}", it),
+                                items: None,
+                            }
                         } else {
-                            Resp { ok: false, msg: "queue empty".into(), items: None }
+                            Resp {
+                                ok: false,
+                                msg: "queue empty".into(),
+                                items: None,
+                            }
                         }
                     }
                     "status" => {
@@ -388,26 +542,62 @@ async fn handle_tcp_connection(
                             .status()
                             .await
                             .unwrap_or_else(|e| format!("err: {}", e));
-                        Resp { ok: true, msg: s, items: None }
+                        Resp {
+                            ok: true,
+                            msg: s,
+                            items: None,
+                        }
                     }
-                    "list" => Resp { ok: true, msg: "ok".into(), items: Some(pl.list()) },
+                    "list" => Resp {
+                        ok: true,
+                        msg: "ok".into(),
+                        items: Some(pl.list()),
+                    },
                     "artist_info" => {
                         if let Some(artist_id) = c.arg.as_deref() {
-                            let info = pl.adapter_mut().artist_info(artist_id).await.unwrap_or_else(|e| format!("err: {}", e));
+                            let info = pl
+                                .adapter_mut()
+                                .artist_info(artist_id)
+                                .await
+                                .unwrap_or_else(|e| format!("err: {}", e));
                             // split lines into items for structured response
                             let items = info.lines().map(|s| s.to_string()).collect();
-                            Resp { ok: true, msg: "artist info".into(), items: Some(items) }
+                            Resp {
+                                ok: true,
+                                msg: "artist info".into(),
+                                items: Some(items),
+                            }
                         } else {
-                            Resp { ok: false, msg: "missing arg".into(), items: None }
+                            Resp {
+                                ok: false,
+                                msg: "missing arg".into(),
+                                items: None,
+                            }
                         }
                     }
                     "artist_discography" => {
                         if let Some(artist_id) = c.arg.as_deref() {
-                            let disc = pl.adapter_mut().artist_discography(artist_id).await.unwrap_or_else(|e| format!("err: {}", e));
-                            let items = if disc.is_empty() { vec![] } else { disc.lines().map(|s| s.to_string()).collect() };
-                            Resp { ok: true, msg: "discography".into(), items: Some(items) }
+                            let disc = pl
+                                .adapter_mut()
+                                .artist_discography(artist_id)
+                                .await
+                                .unwrap_or_else(|e| format!("err: {}", e));
+                            let items = if disc.is_empty() {
+                                vec![]
+                            } else {
+                                disc.lines().map(|s| s.to_string()).collect()
+                            };
+                            Resp {
+                                ok: true,
+                                msg: "discography".into(),
+                                items: Some(items),
+                            }
                         } else {
-                            Resp { ok: false, msg: "missing arg".into(), items: None }
+                            Resp {
+                                ok: false,
+                                msg: "missing arg".into(),
+                                items: None,
+                            }
                         }
                     }
                     _ => Resp {
@@ -434,9 +624,7 @@ async fn validate_https_url(url: &str) -> anyhow::Result<()> {
     if !url.starts_with("https://") {
         return Ok(());
     }
-    let client = Client::builder()
-        .timeout(Duration::from_secs(5))
-        .build()?;
+    let client = Client::builder().timeout(Duration::from_secs(5)).build()?;
     // Use HEAD first, fall back to GET if HEAD not allowed
     let resp = client.head(url).send().await;
     match resp {
