@@ -86,7 +86,5 @@ jobs:
           path: target/release/apple
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
-        with:
-
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
