@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Rust
+/target
+**/*.rs.bk
+
+# Local configs
+.config/
+.env
+musickit-server/.env
+
+# Keys
+*.p8
+
