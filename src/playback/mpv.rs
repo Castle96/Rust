@@ -60,9 +60,16 @@ impl MpvAdapter {
             .context("failed to create mpv err file")?;
         // Let mpv write its --log-file; capture stderr to err_file for immediate diagnostics. Keep stdout null.
         // Build the full command string and run it via sh -c to ensure options like --input-ipc-server= are passed exactly.
-        let log_arg_val = ipc_path.with_extension("log").to_string_lossy().to_string();
+        let log_arg_val = ipc_path
+            .with_extension("log")
+            .to_string_lossy()
+            .to_string();
         let ipc_arg_val = ipc_path.to_string_lossy().to_string();
-        let primary_cmd = format!("mpv --no-config --no-video --idle --ao=null --msg-level=all=debug --log-file='{}' --input-ipc-server='{}'", log_arg_val, ipc_arg_val);
+        let primary_cmd = format!(
+            "mpv --no-config --no-video --idle --ao=null --msg-level=all=debug \
+             --log-file='{}' --input-ipc-server='{}'",
+            log_arg_val, ipc_arg_val
+        );
         let mut child = Command::new("sh")
             .arg("-c")
             .arg(primary_cmd)
@@ -89,7 +96,10 @@ impl MpvAdapter {
                             .unwrap_or_else(|_| "<could not read mpv log>".into());
                         let err_contents = std::fs::read_to_string(err_path)
                             .unwrap_or_else(|_| "<could not read mpv err file>".into());
-                        anyhow::bail!("mpv process exited early (status={}); mpv --log-file:\n{}\nmpv stderr:\n{}", status, log_contents, err_contents);
+                        anyhow::bail!(
+                            "mpv process exited early (status={}); mpv --log-file:\n{}\nmpv stderr:\n{}",
+                            status, log_contents, err_contents
+                        );
                     }
                     Ok(None) => {}
                     Err(e) => {

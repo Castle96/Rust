@@ -61,7 +61,10 @@ async fn main() -> Result<()> {
     match cli.cmd {
         Commands::Play { uri } => {
             if is_insecure_http(&uri) && !insecure_allowed() {
-                bail!("Refusing insecure http URL. Use https:// or set APPLE_ALLOW_INSECURE=1 to allow insecure URLs");
+                bail!(
+                    "Refusing insecure http URL. Use https:// or set \
+                     APPLE_ALLOW_INSECURE=1 to allow insecure URLs"
+                );
             }
             let r = send(&socket, token.as_deref(), "play", Some(&uri)).await?;
             println!("{}", r.msg);
@@ -72,7 +75,10 @@ async fn main() -> Result<()> {
         }
         Commands::Enqueue { uri } => {
             if is_insecure_http(&uri) && !insecure_allowed() {
-                bail!("Refusing insecure http URL. Use https:// or set APPLE_ALLOW_INSECURE=1 to allow insecure URLs");
+                bail!(
+                    "Refusing insecure http URL. Use https:// or set \
+                     APPLE_ALLOW_INSECURE=1 to allow insecure URLs"
+                );
             }
             let r = send(&socket, token.as_deref(), "enqueue", Some(&uri)).await?;
             println!("{}", r.msg);

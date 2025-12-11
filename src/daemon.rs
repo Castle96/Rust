@@ -87,7 +87,15 @@ pub async fn run_daemon(player: Player) -> Result<()> {
                         let token_env = token_env.clone();
                         let shutdown_flag = shutdown_flag.clone();
                         tokio::spawn(async move {
-                            if let Err(e) = handle_unix_connection(stream, player, shutdown, shutdown_flag, token_env).await {
+                            if let Err(e) = handle_unix_connection(
+                                stream,
+                                player,
+                                shutdown,
+                                shutdown_flag,
+                                token_env,
+                            )
+                            .await
+                            {
                                 eprintln!("daemon connection error: {}", e);
                             }
                         });
@@ -123,7 +131,15 @@ pub async fn run_daemon(player: Player) -> Result<()> {
                         let token_env = token_env.clone();
                         let shutdown_flag = shutdown_flag.clone();
                         tokio::spawn(async move {
-                            if let Err(e) = handle_tcp_connection(stream, player, shutdown, shutdown_flag, token_env).await {
+                            if let Err(e) = handle_tcp_connection(
+                                stream,
+                                player,
+                                shutdown,
+                                shutdown_flag,
+                                token_env,
+                            )
+                            .await
+                            {
                                 eprintln!("daemon tcp conn error: {}", e);
                             }
                         });

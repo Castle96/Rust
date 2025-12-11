@@ -95,7 +95,13 @@ impl Controller {
         match self {
             Controller::Local { player } => player.adapter_mut().seek_forward(10).await,
             Controller::Remote { socket, token } => {
-                let _ = send_daemon_cmd(socket, token.as_deref(), "seek_forward", Some("10")).await?;
+                let _ = send_daemon_cmd(
+                    socket,
+                    token.as_deref(),
+                    "seek_forward",
+                    Some("10"),
+                )
+                .await?;
                 Ok(())
             }
         }
@@ -105,7 +111,13 @@ impl Controller {
         match self {
             Controller::Local { player } => player.adapter_mut().seek_backward(10).await,
             Controller::Remote { socket, token } => {
-                let _ = send_daemon_cmd(socket, token.as_deref(), "seek_backward", Some("10")).await?;
+                let _ = send_daemon_cmd(
+                    socket,
+                    token.as_deref(),
+                    "seek_backward",
+                    Some("10"),
+                )
+                .await?;
                 Ok(())
             }
         }
@@ -364,7 +376,11 @@ async fn main() -> Result<()> {
 
 loop {
         let queue = controller.list_queue().await.unwrap_or_default();
-        if queue.is_empty() { selected = 0 } else if selected >= queue.len() { selected = queue.len()-1 }
+        if queue.is_empty() {
+            selected = 0;
+        } else if selected >= queue.len() {
+            selected = queue.len() - 1;
+        }
         list_state.select(if queue.is_empty() { None } else { Some(selected) });
 
         // Get position and duration outside of draw to avoid async issues
@@ -373,11 +389,23 @@ loop {
 
         terminal.draw(|f| {
             let size = f.size();
-            let chunks = Layout::default().direction(Direction::Vertical).margin(1)
-                .constraints([Constraint::Length(3), Constraint::Length(3), Constraint::Min(4), Constraint::Length(3)]).split(size);
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints([
+                    Constraint::Length(3),
+                    Constraint::Length(3),
+                    Constraint::Min(4),
+                    Constraint::Length(3),
+                ])
+                .split(size);
 
-            let header = Paragraph::new(format!("Apple TUI - q:quit p:pause SPACE:pause n:next s:status a:play e:enqueue t:theme +/-:volume ←/→:seek - last: {}", last_status))
-                .style(theme.header_style()).block(Block::default().borders(Borders::ALL).title("Controls"));
+            let header = Paragraph::new(format!(
+                "Apple TUI - q:quit p:pause SPACE:pause n:next s:status a:play e:enqueue t:theme +/-:volume ←/→:seek - last: {}",
+                last_status
+            ))
+                .style(theme.header_style())
+                .block(Block::default().borders(Borders::ALL).title("Controls"));
             f.render_widget(header, chunks[0]);
 
             // Progress bar
@@ -394,16 +422,24 @@ loop {
             f.render_widget(progress_gauge, chunks[1]);
 
             let items: Vec<ListItem> = queue.iter().map(|it| ListItem::new(it.clone())).collect();
-            let list = List::new(items).block(Block::default().borders(Borders::ALL).title("Queue")).highlight_style(theme.list_highlight());
+            let list = List::new(items)
+                .block(Block::default().borders(Borders::ALL).title("Queue"))
+                .highlight_style(theme.list_highlight());
             f.render_stateful_widget(list, chunks[2], &mut list_state);
 
             if mode_input {
                 let prompt = if input_enqueue { "Enqueue: " } else { "Play: " };
-                let p = Paragraph::new(format!("{}{}", prompt, input_buf)).block(Block::default().borders(Borders::ALL).title("Input (Enter to submit, Esc to cancel)"));
+                let p = Paragraph::new(format!("{}{}", prompt, input_buf))
+                    .block(Block::default().borders(Borders::ALL).title(
+                        "Input (Enter to submit, Esc to cancel)"
+                    ));
                 f.render_widget(p, chunks[2]);
             } else {
-                let help = Paragraph::new("Navigation: Up/Down to move, e:enqueue, a:play, i:artist info, d:discography, T:preferences, t:theme toggle")
-                    .style(theme.help_style()).block(Block::default().borders(Borders::ALL).title("Help"));
+                let help = Paragraph::new(
+                    "Navigation: Up/Down to move, e:enqueue, a:play, i:artist info, d:discography, T:preferences, t:theme toggle"
+                )
+                    .style(theme.help_style())
+                    .block(Block::default().borders(Borders::ALL).title("Help"));
                 f.render_widget(help, chunks[2]);
             }
 
@@ -415,8 +451,21 @@ loop {
                 let y = (size.height.saturating_sub(h)) / 2;
                 let area = ratatui::layout::Rect::new(x, y, w, h);
                 let max_lines = if h >= 3 { (h-2) as usize } else { 0 };
-                let visible = modal_lines.iter().skip(modal_scroll).take(max_lines).cloned().collect::<Vec<_>>().join("\n");
-                let p = Paragraph::new(visible).style(theme.modal_style()).block(Block::default().borders(Borders::ALL).title("Artist Details (Esc to close, Up/Down to scroll)")).alignment(Alignment::Left);
+                let visible = modal_lines
+                    .iter()
+                    .skip(modal_scroll)
+                    .take(max_lines)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                let p = Paragraph::new(visible)
+                    .style(theme.modal_style())
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .title("Artist Details (Esc to close, Up/Down to scroll)")
+                    )
+                    .alignment(Alignment::Left);
                 f.render_widget(p, area);
             }
 
@@ -426,11 +475,22 @@ loop {
                 let x = (size.width.saturating_sub(w)) / 2;
                 let y = (size.height.saturating_sub(h)) / 2;
                 let area = ratatui::layout::Rect::new(x, y, w, h);
-                let options = [format!("Theme: {}", if let Theme::Light = theme { "Light" } else { "Dark" })];
-                let items: Vec<ListItem> = options.iter().map(|s| ListItem::new(s.clone())).collect();
-                let mut list = List::new(items).block(Block::default().borders(Borders::ALL).title("Preferences (Up/Down, Enter to toggle, Esc to close)"));
+                let options = [
+                    format!(
+                        "Theme: {}",
+                        if let Theme::Light = theme { "Light" } else { "Dark" }
+                    )
+                ];
+                let items: Vec<ListItem> =
+                    options.iter().map(|s| ListItem::new(s.clone())).collect();
+                let mut list = List::new(items).block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("Preferences (Up/Down, Enter to toggle, Esc to close)")
+                );
                 list = list.highlight_style(theme.list_highlight());
-                let mut state = ratatui::widgets::ListState::default(); state.select(Some(prefs_selected));
+                let mut state = ratatui::widgets::ListState::default();
+                state.select(Some(prefs_selected));
                 f.render_stateful_widget(list, area, &mut state);
             }
         })?;
@@ -475,7 +535,8 @@ loop {
                                     }
                                 }
                             } else if is_insecure_http(&input_buf) && !insecure_allowed() {
-                                last_status = "Refused insecure http URL; set APPLE_ALLOW_INSECURE=1 to allow".into();
+                                last_status = "Refused insecure http URL; set APPLE_ALLOW_INSECURE=1 to allow"
+                                    .into();
                             } else if input_enqueue {
                                 let _ = controller.enqueue(&input_buf).await;
                             } else {
