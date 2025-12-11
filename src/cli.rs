@@ -34,6 +34,14 @@ pub enum Commands {
     Next,
     Prev,
     Status,
+    Volume {
+        #[command(subcommand)]
+        action: VolumeAction,
+    },
+    Seek {
+        #[command(subcommand)]
+        action: SeekAction,
+    },
     Queue {
         #[command(subcommand)]
         action: QueueAction,
@@ -45,6 +53,22 @@ pub enum QueueAction {
     Add { item: String },
     List,
     Next,
+}
+
+#[derive(Subcommand)]
+pub enum VolumeAction {
+    Up,
+    Down,
+    Set { volume: u8 },
+    Mute,
+    Unmute,
+}
+
+#[derive(Subcommand)]
+pub enum SeekAction {
+    Forward { seconds: Option<u64> },
+    Backward { seconds: Option<u64> },
+    To { seconds: u64 },
 }
 
 pub async fn run() -> anyhow::Result<()> {
@@ -106,6 +130,76 @@ pub async fn run() -> anyhow::Result<()> {
                 .context("status failed")?;
             println!("Status:\n{}", s);
         }
+        Commands::Volume { action } => match action {
+            VolumeAction::Up => {
+                player
+                    .adapter_mut()
+                    .volume_up()
+                    .await
+                    .context("volume up failed")?;
+                println!("Volume up");
+            }
+            VolumeAction::Down => {
+                player
+                    .adapter_mut()
+                    .volume_down()
+                    .await
+                    .context("volume down failed")?;
+                println!("Volume down");
+            }
+            VolumeAction::Set { volume } => {
+                player
+                    .adapter_mut()
+                    .set_volume(volume)
+                    .await
+                    .context("set volume failed")?;
+                println!("Volume set to {}", volume);
+            }
+            VolumeAction::Mute => {
+                player
+                    .adapter_mut()
+                    .mute()
+                    .await
+                    .context("mute failed")?;
+                println!("Muted");
+            }
+            VolumeAction::Unmute => {
+                player
+                    .adapter_mut()
+                    .unmute()
+                    .await
+                    .context("unmute failed")?;
+                println!("Unmuted");
+            }
+        },
+        Commands::Seek { action } => match action {
+            SeekAction::Forward { seconds } => {
+                let secs = seconds.unwrap_or(10);
+                player
+                    .adapter_mut()
+                    .seek_forward(secs)
+                    .await
+                    .context("seek forward failed")?;
+                println!("Seek forward {} seconds", secs);
+            }
+            SeekAction::Backward { seconds } => {
+                let secs = seconds.unwrap_or(10);
+                player
+                    .adapter_mut()
+                    .seek_backward(secs)
+                    .await
+                    .context("seek backward failed")?;
+                println!("Seek backward {} seconds", secs);
+            }
+            SeekAction::To { seconds } => {
+                player
+                    .adapter_mut()
+                    .seek_to(seconds)
+                    .await
+                    .context("seek to failed")?;
+                println!("Seek to {} seconds", seconds);
+            }
+        },
         Commands::Queue { action } => match action {
             QueueAction::Add { item } => {
                 player.enqueue(item);

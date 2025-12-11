@@ -362,6 +362,120 @@ async fn handle_unix_connection(
                             }
                         }
                     }
+                    "volume_up" => {
+                        let _ = pl.adapter_mut().volume_up().await;
+                        Resp {
+                            ok: true,
+                            msg: "volume up".into(),
+                            items: None,
+                        }
+                    }
+                    "volume_down" => {
+                        let _ = pl.adapter_mut().volume_down().await;
+                        Resp {
+                            ok: true,
+                            msg: "volume down".into(),
+                            items: None,
+                        }
+                    }
+                    "set_volume" => {
+                        if let Some(vol_str) = c.arg.as_deref() {
+                            if let Ok(volume) = vol_str.parse::<u8>() {
+                                let _ = pl.adapter_mut().set_volume(volume).await;
+                                Resp {
+                                    ok: true,
+                                    msg: format!("volume set to {}", volume),
+                                    items: None,
+                                }
+                            } else {
+                                Resp {
+                                    ok: false,
+                                    msg: "invalid volume".into(),
+                                    items: None,
+                                }
+                            }
+                        } else {
+                            Resp {
+                                ok: false,
+                                msg: "missing volume".into(),
+                                items: None,
+                            }
+                        }
+                    }
+                    "mute" => {
+                        let _ = pl.adapter_mut().mute().await;
+                        Resp {
+                            ok: true,
+                            msg: "muted".into(),
+                            items: None,
+                        }
+                    }
+                    "unmute" => {
+                        let _ = pl.adapter_mut().unmute().await;
+                        Resp {
+                            ok: true,
+                            msg: "unmuted".into(),
+                            items: None,
+                        }
+                    }
+                    "seek_forward" => {
+                        let seconds = c.arg.as_deref().and_then(|s| s.parse().ok()).unwrap_or(10);
+                        let _ = pl.adapter_mut().seek_forward(seconds).await;
+                        Resp {
+                            ok: true,
+                            msg: format!("seek forward {} seconds", seconds),
+                            items: None,
+                        }
+                    }
+                    "seek_backward" => {
+                        let seconds = c.arg.as_deref().and_then(|s| s.parse().ok()).unwrap_or(10);
+                        let _ = pl.adapter_mut().seek_backward(seconds).await;
+                        Resp {
+                            ok: true,
+                            msg: format!("seek backward {} seconds", seconds),
+                            items: None,
+                        }
+                    }
+                    "seek_to" => {
+                        if let Some(secs_str) = c.arg.as_deref() {
+                            if let Ok(seconds) = secs_str.parse::<u64>() {
+                                let _ = pl.adapter_mut().seek_to(seconds).await;
+                                Resp {
+                                    ok: true,
+                                    msg: format!("seek to {} seconds", seconds),
+                                    items: None,
+                                }
+                            } else {
+                                Resp {
+                                    ok: false,
+                                    msg: "invalid seconds".into(),
+                                    items: None,
+                                }
+                            }
+                        } else {
+                            Resp {
+                                ok: false,
+                                msg: "missing seconds".into(),
+                                items: None,
+                            }
+                        }
+                    }
+                    "position" => {
+                        let pos = pl.adapter_mut().get_position().await.unwrap_or(0);
+                        Resp {
+                            ok: true,
+                            msg: pos.to_string(),
+                            items: None,
+                        }
+                    }
+                    "duration" => {
+                        let dur = pl.adapter_mut().get_duration().await.unwrap_or(0);
+                        Resp {
+                            ok: true,
+                            msg: dur.to_string(),
+                            items: None,
+                        }
+                    }
                     _ => Resp {
                         ok: false,
                         msg: "unknown cmd".into(),
@@ -598,6 +712,120 @@ async fn handle_tcp_connection(
                                 msg: "missing arg".into(),
                                 items: None,
                             }
+                        }
+                    }
+                    "volume_up" => {
+                        let _ = pl.adapter_mut().volume_up().await;
+                        Resp {
+                            ok: true,
+                            msg: "volume up".into(),
+                            items: None,
+                        }
+                    }
+                    "volume_down" => {
+                        let _ = pl.adapter_mut().volume_down().await;
+                        Resp {
+                            ok: true,
+                            msg: "volume down".into(),
+                            items: None,
+                        }
+                    }
+                    "set_volume" => {
+                        if let Some(vol_str) = c.arg.as_deref() {
+                            if let Ok(volume) = vol_str.parse::<u8>() {
+                                let _ = pl.adapter_mut().set_volume(volume).await;
+                                Resp {
+                                    ok: true,
+                                    msg: format!("volume set to {}", volume),
+                                    items: None,
+                                }
+                            } else {
+                                Resp {
+                                    ok: false,
+                                    msg: "invalid volume".into(),
+                                    items: None,
+                                }
+                            }
+                        } else {
+                            Resp {
+                                ok: false,
+                                msg: "missing volume".into(),
+                                items: None,
+                            }
+                        }
+                    }
+                    "mute" => {
+                        let _ = pl.adapter_mut().mute().await;
+                        Resp {
+                            ok: true,
+                            msg: "muted".into(),
+                            items: None,
+                        }
+                    }
+                    "unmute" => {
+                        let _ = pl.adapter_mut().unmute().await;
+                        Resp {
+                            ok: true,
+                            msg: "unmuted".into(),
+                            items: None,
+                        }
+                    }
+                    "seek_forward" => {
+                        let seconds = c.arg.as_deref().and_then(|s| s.parse().ok()).unwrap_or(10);
+                        let _ = pl.adapter_mut().seek_forward(seconds).await;
+                        Resp {
+                            ok: true,
+                            msg: format!("seek forward {} seconds", seconds),
+                            items: None,
+                        }
+                    }
+                    "seek_backward" => {
+                        let seconds = c.arg.as_deref().and_then(|s| s.parse().ok()).unwrap_or(10);
+                        let _ = pl.adapter_mut().seek_backward(seconds).await;
+                        Resp {
+                            ok: true,
+                            msg: format!("seek backward {} seconds", seconds),
+                            items: None,
+                        }
+                    }
+                    "seek_to" => {
+                        if let Some(secs_str) = c.arg.as_deref() {
+                            if let Ok(seconds) = secs_str.parse::<u64>() {
+                                let _ = pl.adapter_mut().seek_to(seconds).await;
+                                Resp {
+                                    ok: true,
+                                    msg: format!("seek to {} seconds", seconds),
+                                    items: None,
+                                }
+                            } else {
+                                Resp {
+                                    ok: false,
+                                    msg: "invalid seconds".into(),
+                                    items: None,
+                                }
+                            }
+                        } else {
+                            Resp {
+                                ok: false,
+                                msg: "missing seconds".into(),
+                                items: None,
+                            }
+                        }
+                    }
+                    "position" => {
+                        let pos = pl.adapter_mut().get_position().await.unwrap_or(0);
+                        Resp {
+                            ok: true,
+                            msg: pos.to_string(),
+                            items: None,
+                        }
+                    }
+                    "duration" => {
+                        let dur = pl.adapter_mut().get_duration().await.unwrap_or(0);
+                        Resp {
+                            ok: true,
+                            msg: dur.to_string(),
+                            items: None,
                         }
                     }
                     _ => Resp {

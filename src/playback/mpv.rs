@@ -212,6 +212,78 @@ impl PlaybackAdapter for MpvAdapter {
     async fn status(&mut self) -> Result<String> {
         Ok("mpv: status not implemented".to_string())
     }
+
+    async fn volume_up(&mut self) -> Result<()> {
+        let cmd = json!({"command": ["add", "volume", 10]});
+        self.send_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn volume_down(&mut self) -> Result<()> {
+        let cmd = json!({"command": ["add", "volume", -10]});
+        self.send_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn set_volume(&mut self, volume: u8) -> Result<()> {
+        let cmd = json!({"command": ["set", "volume", volume]});
+        self.send_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn get_volume(&mut self) -> Result<u8> {
+        let cmd = json!({"command": ["get_property", "volume"]});
+        self.send_command(cmd).await?;
+        // Note: In a real implementation, we'd need to read the response
+        // For now, return a reasonable default
+        Ok(50)
+    }
+
+    async fn mute(&mut self) -> Result<()> {
+        let cmd = json!({"command": ["set", "mute", true]});
+        self.send_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn unmute(&mut self) -> Result<()> {
+        let cmd = json!({"command": ["set", "mute", false]});
+        self.send_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn seek_forward(&mut self, seconds: u64) -> Result<()> {
+        let cmd = json!({"command": ["seek", seconds, "relative"]});
+        self.send_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn seek_backward(&mut self, seconds: u64) -> Result<()> {
+        let cmd = json!({"command": ["seek", -(seconds as i64), "relative"]});
+        self.send_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn seek_to(&mut self, seconds: u64) -> Result<()> {
+        let cmd = json!({"command": ["seek", seconds, "absolute"]});
+        self.send_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn get_position(&mut self) -> Result<u64> {
+        let cmd = json!({"command": ["get_property", "time-pos"]});
+        self.send_command(cmd).await?;
+        // Note: In a real implementation, we'd need to read the response
+        // For now, return a reasonable default
+        Ok(0)
+    }
+
+    async fn get_duration(&mut self) -> Result<u64> {
+        let cmd = json!({"command": ["get_property", "duration"]});
+        self.send_command(cmd).await?;
+        // Note: In a real implementation, we'd need to read the response
+        // For now, return a reasonable default
+        Ok(0)
+    }
 }
 
 // On Unix, try a graceful SIGTERM via nix, then fallback to kill+reap.

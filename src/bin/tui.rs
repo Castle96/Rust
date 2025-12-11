@@ -13,7 +13,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Gauge},
     Terminal,
 };
 use serde::{Deserialize, Serialize};
@@ -47,6 +47,66 @@ impl Controller {
             Controller::Remote { socket, token } => {
                 let resp = send_daemon_cmd(socket, token.as_deref(), "status", None).await?;
                 Ok(resp.msg)
+            }
+        }
+    }
+
+    async fn get_position(&mut self) -> Result<u64> {
+        match self {
+            Controller::Local { player } => player.adapter_mut().get_position().await,
+            Controller::Remote { socket, token } => {
+                let resp = send_daemon_cmd(socket, token.as_deref(), "position", None).await?;
+                resp.msg.parse().unwrap_or(Ok(0))
+            }
+        }
+    }
+
+    async fn get_duration(&mut self) -> Result<u64> {
+        match self {
+            Controller::Local { player } => player.adapter_mut().get_duration().await,
+            Controller::Remote { socket, token } => {
+                let resp = send_daemon_cmd(socket, token.as_deref(), "duration", None).await?;
+                resp.msg.parse().unwrap_or(Ok(0))
+            }
+        }
+    }
+
+    async fn volume_up(&mut self) -> Result<()> {
+        match self {
+            Controller::Local { player } => player.adapter_mut().volume_up().await,
+            Controller::Remote { socket, token } => {
+                let _ = send_daemon_cmd(socket, token.as_deref(), "volume_up", None).await?;
+                Ok(())
+            }
+        }
+    }
+
+    async fn volume_down(&mut self) -> Result<()> {
+        match self {
+            Controller::Local { player } => player.adapter_mut().volume_down().await,
+            Controller::Remote { socket, token } => {
+                let _ = send_daemon_cmd(socket, token.as_deref(), "volume_down", None).await?;
+                Ok(())
+            }
+        }
+    }
+
+    async fn seek_forward(&mut self) -> Result<()> {
+        match self {
+            Controller::Local { player } => player.adapter_mut().seek_forward(10).await,
+            Controller::Remote { socket, token } => {
+                let _ = send_daemon_cmd(socket, token.as_deref(), "seek_forward", Some("10")).await?;
+                Ok(())
+            }
+        }
+    }
+
+    async fn seek_backward(&mut self) -> Result<()> {
+        match self {
+            Controller::Local { player } => player.adapter_mut().seek_backward(10).await,
+            Controller::Remote { socket, token } => {
+                let _ = send_daemon_cmd(socket, token.as_deref(), "seek_backward", Some("10")).await?;
+                Ok(())
             }
         }
     }
@@ -188,6 +248,12 @@ fn insecure_allowed() -> bool {
         .unwrap_or(false)
 }
 
+fn format_time(seconds: u64) -> String {
+    let mins = seconds / 60;
+    let secs = seconds % 60;
+    format!("{:02}:{:02}", mins, secs)
+}
+
 #[derive(Clone, Copy, Debug)]
 enum Theme {
     Dark,
@@ -296,31 +362,40 @@ async fn main() -> Result<()> {
     let mut list_state = ratatui::widgets::ListState::default();
     let tick_rate = Duration::from_millis(100);
 
-    loop {
+loop {
         let queue = controller.list_queue().await.unwrap_or_default();
-        if queue.is_empty() {
-            selected = 0
-        } else if selected >= queue.len() {
-            selected = queue.len() - 1
-        }
-        list_state.select(if queue.is_empty() {
-            None
-        } else {
-            Some(selected)
-        });
+        if queue.is_empty() { selected = 0 } else if selected >= queue.len() { selected = queue.len()-1 }
+        list_state.select(if queue.is_empty() { None } else { Some(selected) });
+
+        // Get position and duration outside of draw to avoid async issues
+        let position = controller.get_position().await.unwrap_or(0);
+        let duration = controller.get_duration().await.unwrap_or(0);
 
         terminal.draw(|f| {
             let size = f.size();
             let chunks = Layout::default().direction(Direction::Vertical).margin(1)
-                .constraints([Constraint::Length(3), Constraint::Min(4), Constraint::Length(3)]).split(size);
+                .constraints([Constraint::Length(3), Constraint::Length(3), Constraint::Min(4), Constraint::Length(3)]).split(size);
 
-            let header = Paragraph::new(format!("Apple TUI - q:quit p:pause SPACE:pause n:next s:status a:play e:enqueue t:theme - last: {}", last_status))
+            let header = Paragraph::new(format!("Apple TUI - q:quit p:pause SPACE:pause n:next s:status a:play e:enqueue t:theme +/-:volume ←/→:seek - last: {}", last_status))
                 .style(theme.header_style()).block(Block::default().borders(Borders::ALL).title("Controls"));
             f.render_widget(header, chunks[0]);
 
+            // Progress bar
+            let progress = if duration > 0 { position as f32 / duration as f32 } else { 0.0 };
+            let progress_text = format!("{} / {}", 
+                format_time(position), 
+                if duration > 0 { format_time(duration) } else { "--:--".to_string() }
+            );
+            let progress_gauge = ratatui::widgets::Gauge::default()
+                .block(Block::default().borders(Borders::ALL).title("Progress"))
+                .gauge_style(theme.list_highlight())
+                .percent((progress * 100.0) as u16)
+                .label(progress_text);
+            f.render_widget(progress_gauge, chunks[1]);
+
             let items: Vec<ListItem> = queue.iter().map(|it| ListItem::new(it.clone())).collect();
             let list = List::new(items).block(Block::default().borders(Borders::ALL).title("Queue")).highlight_style(theme.list_highlight());
-            f.render_stateful_widget(list, chunks[1], &mut list_state);
+            f.render_stateful_widget(list, chunks[2], &mut list_state);
 
             if mode_input {
                 let prompt = if input_enqueue { "Enqueue: " } else { "Play: " };
@@ -522,6 +597,22 @@ async fn main() -> Result<()> {
                             input_enqueue = false;
                             pending_artist_action = Some("discography");
                             input_buf.clear();
+                        }
+                        KeyCode::Char('+') | KeyCode::Char('=') => {
+                            let _ = controller.volume_up().await;
+                            last_status = "volume up".into();
+                        }
+                        KeyCode::Char('-') | KeyCode::Char('_') => {
+                            let _ = controller.volume_down().await;
+                            last_status = "volume down".into();
+                        }
+                        KeyCode::Left => {
+                            let _ = controller.seek_backward().await;
+                            last_status = "seek backward".into();
+                        }
+                        KeyCode::Right => {
+                            let _ = controller.seek_forward().await;
+                            last_status = "seek forward".into();
                         }
                         KeyCode::Up => {
                             selected = selected.saturating_sub(1);
