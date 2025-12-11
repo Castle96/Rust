@@ -13,7 +13,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Gauge},
+    widgets::{Block, Borders, Gauge, List, ListItem, Paragraph},
     Terminal,
 };
 use serde::{Deserialize, Serialize};
@@ -95,13 +95,8 @@ impl Controller {
         match self {
             Controller::Local { player } => player.adapter_mut().seek_forward(10).await,
             Controller::Remote { socket, token } => {
-                let _ = send_daemon_cmd(
-                    socket,
-                    token.as_deref(),
-                    "seek_forward",
-                    Some("10"),
-                )
-                .await?;
+                let _ =
+                    send_daemon_cmd(socket, token.as_deref(), "seek_forward", Some("10")).await?;
                 Ok(())
             }
         }
@@ -111,13 +106,8 @@ impl Controller {
         match self {
             Controller::Local { player } => player.adapter_mut().seek_backward(10).await,
             Controller::Remote { socket, token } => {
-                let _ = send_daemon_cmd(
-                    socket,
-                    token.as_deref(),
-                    "seek_backward",
-                    Some("10"),
-                )
-                .await?;
+                let _ =
+                    send_daemon_cmd(socket, token.as_deref(), "seek_backward", Some("10")).await?;
                 Ok(())
             }
         }
@@ -374,7 +364,7 @@ async fn main() -> Result<()> {
     let mut list_state = ratatui::widgets::ListState::default();
     let tick_rate = Duration::from_millis(100);
 
-loop {
+    loop {
         let queue = controller.list_queue().await.unwrap_or_default();
         if queue.is_empty() {
             selected = 0;
@@ -410,8 +400,8 @@ loop {
 
             // Progress bar
             let progress = if duration > 0 { position as f32 / duration as f32 } else { 0.0 };
-            let progress_text = format!("{} / {}", 
-                format_time(position), 
+            let progress_text = format!("{} / {}",
+                format_time(position),
                 if duration > 0 { format_time(duration) } else { "--:--".to_string() }
             );
             let progress_gauge = ratatui::widgets::Gauge::default()

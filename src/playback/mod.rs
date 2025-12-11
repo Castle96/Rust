@@ -12,19 +12,27 @@ pub trait PlaybackAdapter {
 
     // Volume control (0-100). Default: not supported.
     async fn volume_up(&mut self) -> Result<()> {
-        Err(anyhow::anyhow!("volume control not supported by this adapter"))
+        Err(anyhow::anyhow!(
+            "volume control not supported by this adapter"
+        ))
     }
 
     async fn volume_down(&mut self) -> Result<()> {
-        Err(anyhow::anyhow!("volume control not supported by this adapter"))
+        Err(anyhow::anyhow!(
+            "volume control not supported by this adapter"
+        ))
     }
 
     async fn set_volume(&mut self, _volume: u8) -> Result<()> {
-        Err(anyhow::anyhow!("volume control not supported by this adapter"))
+        Err(anyhow::anyhow!(
+            "volume control not supported by this adapter"
+        ))
     }
 
     async fn get_volume(&mut self) -> Result<u8> {
-        Err(anyhow::anyhow!("volume control not supported by this adapter"))
+        Err(anyhow::anyhow!(
+            "volume control not supported by this adapter"
+        ))
     }
 
     async fn mute(&mut self) -> Result<()> {

@@ -156,11 +156,7 @@ pub async fn run() -> anyhow::Result<()> {
                 println!("Volume set to {}", volume);
             }
             VolumeAction::Mute => {
-                player
-                    .adapter_mut()
-                    .mute()
-                    .await
-                    .context("mute failed")?;
+                player.adapter_mut().mute().await.context("mute failed")?;
                 println!("Muted");
             }
             VolumeAction::Unmute => {
