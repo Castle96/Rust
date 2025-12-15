@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: santa-tracker
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: santa-tracker
+  namespace: santa-tracker
+  labels:
+    app: santa-tracker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: santa-tracker
+  template:
+    metadata:
+      labels:
+        app: santa-tracker
+    spec:
+      containers:
+      - name: santa-tracker
+        image: santa-tracker:latest
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true
+        env:
+        - name: TERM
+          value: "xterm-256color"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: santa-tracker
+  namespace: santa-tracker
+spec:
+  selector:
+    app: santa-tracker
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8080
+  type: ClusterIP

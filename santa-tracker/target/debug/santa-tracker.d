@@ -1,0 +1,1 @@
+/home/kyle/santa-tracker/target/debug/santa-tracker: /home/kyle/santa-tracker/src/effects.rs /home/kyle/santa-tracker/src/main.rs /home/kyle/santa-tracker/src/renderer.rs /home/kyle/santa-tracker/src/santa.rs
